@@ -46,3 +46,4 @@ Neutrinos from DUNE flux files, 10 events
 ```
 lar -c prodgenie.fcl -n 10
 ```
+(Note if you get a segmentation fault, try running kinit first.)
