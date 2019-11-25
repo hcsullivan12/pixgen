@@ -1,0 +1,16 @@
+
+BEGIN_PROLOG
+
+pixgen_ana:
+{
+ module_type:          "PixGenAnaTree"
+ G4ModuleLabel:        "largeant"
+ GenieModuleLabel:     "generator"
+}
+
+pixgen_viewsignal:
+{
+  module_type:    "ViewSignal"
+}
+
+END_PROLOG

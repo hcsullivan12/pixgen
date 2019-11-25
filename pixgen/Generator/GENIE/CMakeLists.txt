@@ -1,77 +1,5 @@
-# ======================================================================
-#  pixgen main build file
-#
-#  cd .../path/to/build/directory
-#  source .../path/to/pixgen/ups/setup_for_development <-d|-p>
-#  cmake [-DCMAKE_INSTALL_PREFIX=/install/path]
-#        -DCMAKE_BUILD_TYPE=$CETPKG_TYPE
-#        $CETPKG_SOURCE
-#  make
-#  make test
-#  make install
-#  make package (builds distribution tarfile)
-# ======================================================================
+include_directories ( $ENV{GENIE_INC}/GENIE )
 
-
-# use cmake 2.8 or later
-cmake_minimum_required (VERSION 2.8)
-
-project(pixgen)
-
-# cetbuildtools contains our cmake modules
-SET ( CETBUILDTOOLS_VERSION $ENV{CETBUILDTOOLS_VERSION} )
-IF (NOT CETBUILDTOOLS_VERSION)
-    MESSAGE (FATAL_ERROR "ERROR: setup cetbuildtools to get the cmake modules")
-ENDIF()
-
-set(CMAKE_MODULE_PATH $ENV{CANVAS_ROOT_IO_DIR}/Modules
-		      $ENV{CETBUILDTOOLS_DIR}/Modules
-		      ${CMAKE_MODULE_PATH})
-
-include(CetCMakeEnv)
-cet_cmake_env()
-
-
-# -Wno-unused-variable needed because of CLHEP
-cet_set_compiler_flags(DIAGS CAUTIOUS
-  WERROR
-  NO_UNDEFINED
-  EXTRA_FLAGS -pedantic -Wno-unused-local-typedefs -Wno-unused-variable
-)
-add_definitions(-DGENIE_PRE_R3)
-
-cet_report_compiler_flags()
-
-# these are minimum required versions, not the actual product versions
-find_ups_product( larcoreobj )
-find_ups_product( larcorealg )
-find_ups_product( larcore )
-find_ups_product( lardataobj )
-find_ups_product( lardataalg )
-find_ups_product( lardata )
-find_ups_product( larevt )
-find_ups_product( larsim )
-find_ups_product( marley )
-find_ups_product( nutools )
-find_ups_product( nugen )
-find_ups_product( nurandom )
-find_ups_product( nusimdata )
-find_ups_product( art )
-find_ups_product(art_root_io)
-find_ups_product( cetbuildtools )
-find_ups_geant4( geant4 )
-find_ups_product( postgresql )
-find_ups_product( ifdhc )
-find_ups_root( root )
-
-# Wes put this here to use TRACE for debugging...
-#find_ups_product( TRACE )
-
-#  Find all the libraries needed by our dependent CMakeList.txt files
-cet_find_library( BOOST_SERIALIZATION NAMES boost_serialization PATHS ENV BOOST_LIB NO_DEFAULT_PATH )
-cet_find_library( BOOST_DATE_TIME     NAMES boost_date_time     PATHS ENV BOOST_LIB NO_DEFAULT_PATH )
-#
-find_library( CRY NAMES CRY PATHS $ENV{CRYHOME}/lib NO_DEFAULT_PATH )
 # genie
 cet_find_library( GALGORITHM NAMES GAlgorithm PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
 cet_find_library( GBARYONRESONANCE NAMES GBaryonResonance PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
@@ -107,31 +35,89 @@ cet_find_library( GPDF NAMES GPDF PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
 cet_find_library( GQEL NAMES GQEL PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
 cet_find_library( GRES NAMES GRES PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
 cet_find_library( GREGISTRY NAMES GRegistry PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
-cet_find_library( GREINSEGHAL NAMES GReinSeghal PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
+#cet_find_library( GREINSEGHAL NAMES GReinSeghal PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
 cet_find_library( GUTILS NAMES GUtils PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
 cet_find_library( GGEO NAMES GGeo PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
 cet_find_library( GFLUXDRIVERS NAMES GFluxDrivers PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
 cet_find_library( GMUELOSS NAMES GMuELoss PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
-# marley libraries
-cet_find_library( MARLEY NAMES MARLEY PATHS ENV MARLEY_LIB NO_DEFAULT_PATH )
-cet_find_library( MARLEY_ROOT NAMES MARLEY_ROOT PATHS ENV MARLEY_LIB NO_DEFAULT_PATH )
+cet_find_library( GREWEIGHT NAMES GReWeight PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
+cet_find_library( GNUCLEONDECAY NAMES GNucleonDecay PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
+cet_find_library( GNEUTRONOSC NAMES GNeutronOsc PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
 
-# temporarily needed since this is an unexpected header path
-include_directories( $ENV{IFDHC_FQ_DIR}/inc )
+# prior to GENIE R-2_9_0 Sehgal's name was spelled incorrectly
+# so if minor version # is 8 or less use GReinSeghal, otherwise GReinSehgal
+# parse_ups_version returns VMAJ, VMIN, and VPRJ
+parse_ups_version( $ENV{GENIE_VERSION} )
+set ( GRSSPELLING GReinSehgal )
+if ( ${VMAJ} EQUAL 2 AND ${VMIN} LESS 9 )
+  set ( GRSSPELLING GReinSeghal )
+endif ( ${VMAJ} EQUAL 2 AND ${VMIN} LESS 9 )
+message(STATUS "GENIE version ${GENIE_VERSION} major ${VMAJ} minor ${VMIN} ${GRSSPELLING}")
+cet_find_library( GREINSEHGAL NAMES ${GRSSPELLING} PATHS ENV GENIE_LIB NO_DEFAULT_PATH )
 
-# macros for dictionary and simple_plugin
-include(ArtDictionary)
-include(ArtMake)
-include(BuildPlugins)
+art_make(MODULE_LIBRARIES
+         lardataalg_MCDumpers
+         larsim_Simulation lardataobj_Simulation
+         nusimdata_SimulationBase
+         larcoreobj_SummaryData
+         pixgen_Geometry
+         nurandom_RandomUtils_NuRandomService_service
+         nugen_EventGeneratorBase_GENIE
+         ${ART_FRAMEWORK_SERVICES_REGISTRY}
+         ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+         ${ART_ROOT_IO_TFILESERVICE_SERVICE}
+         art_Persistency_Provenance
+         ${MF_MESSAGELOGGER}
+         ${CLHEP}
+#	 ${GMESSENGER}
+         ${GALGORITHM}
+         ${GBARYONRESONANCE}
+         ${GBASE}
+         ${GBODEKYANG}
+         ${GCHARM}
+         ${GCOH}
+         ${GDFRC}
+         ${GDIS}
+         ${GCROSSSECTIONS}
+         ${GDECAY}
+         ${GELAS}
+         ${GELFF}
+         ${GHEP}
+         ${GEVGCORE}
+         ${GEVGMODULES}
+         ${GEVGDRIVERS}
+         ${GGIBUU}
+         ${GHADRONTRANSP}
+         ${GFRAGMENTATION}
+         ${GINTERACTION}
+         ${GLLEWELLYNSMITH}
+         ${GMEC}
+         ${GNUGAMMA}
+         ${GNUE}
+         ${GNTUPLE}
+         ${GNUCLEAR}
+         ${GNUMERICAL}
+         ${GQPM}
+         ${GPDG}
+         ${GPDF}
+         ${GQEL}
+         ${GRES}
+         ${GREGISTRY}
+         ${GREINSEHGAL}
+         ${GUTILS}
+         ${GGEO}
+         ${GFLUXDRIVERS}
+         ${GMUELOSS}
+         ${GREWEIGHT}
+         ${GNUCLEONDECAY}
+         ${GNEUTRONOSC}
+         ${GMESSENGER}
+         ${ROOT_EGPYTHIA6}    # FIXME!!! - resolving genie run time reference
+         ${ROOT_EG}
+         ${ROOT_HIST}
+         ${ROOT_MATHCORE}
+        )
 
-# source
-add_subdirectory(pixgen)
-
-# tests
-add_subdirectory(test)
-
-# ups - table and config files
-add_subdirectory(ups)
-
-# packaging utility
-include(UseCPack)
+install_headers()
+install_fhicl()
+install_source()

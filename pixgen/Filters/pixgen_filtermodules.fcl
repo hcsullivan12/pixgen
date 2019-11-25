@@ -1,0 +1,9 @@
+
+BEGIN_PROLOG
+
+pixgen_emptyeventfilter:
+{
+ module_type:          "EmptyEventFilter"
+}
+
+END_PROLOG
